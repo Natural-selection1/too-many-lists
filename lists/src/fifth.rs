@@ -24,19 +24,21 @@ pub struct IterMut<'a, T> {
 
 impl<T> List<T> {
     pub fn new() -> Self {
-        List { head: ptr::null_mut(), tail: ptr::null_mut() }
+        List {
+            head: ptr::null_mut(),
+            tail: ptr::null_mut(),
+        }
     }
     pub fn push(&mut self, elem: T) {
         unsafe {
             let new_tail = Box::into_raw(Box::new(Node {
-                elem: elem,
+                elem,
                 next: ptr::null_mut(),
             }));
 
-            if !self.tail.is_null() {
-                (*self.tail).next = new_tail;
-            } else {
-                self.head = new_tail;
+            match !self.tail.is_null() {
+                true => (*self.tail).next = new_tail,
+                false => self.head = new_tail,
             }
 
             self.tail = new_tail;
@@ -44,53 +46,65 @@ impl<T> List<T> {
     }
     pub fn pop(&mut self) -> Option<T> {
         unsafe {
-            if self.head.is_null() {
-                None
-            } else {
-                let head = Box::from_raw(self.head);
-                self.head = head.next;
+            match self.head.is_null() {
+                true => None,
+                false => {
+                    let head = Box::from_raw(self.head);
+                    self.head = head.next;
 
-                if self.head.is_null() {
-                    self.tail = ptr::null_mut();
+                    if self.head.is_null() {
+                        self.tail = ptr::null_mut();
+                    }
+
+                    Some(head.elem)
                 }
-
-                Some(head.elem)
             }
         }
     }
 
     pub fn peek(&self) -> Option<&T> {
-        unsafe {
-            self.head.as_ref().map(|node| &node.elem)
-        }
+        unsafe { self.head.as_ref().map(|node| &node.elem) }
     }
 
     pub fn peek_mut(&mut self) -> Option<&mut T> {
-        unsafe {
-            self.head.as_mut().map(|node| &mut node.elem)
-        }
-    }
-
-    pub fn into_iter(self) -> IntoIter<T> {
-        IntoIter(self)
+        unsafe { self.head.as_mut().map(|node| &mut node.elem) }
     }
 
     pub fn iter(&self) -> Iter<'_, T> {
         unsafe {
-            Iter { next: self.head.as_ref() }
+            Iter {
+                next: self.head.as_ref(),
+            }
         }
     }
 
     pub fn iter_mut(&mut self) -> IterMut<'_, T> {
         unsafe {
-            IterMut { next: self.head.as_mut() }
+            IterMut {
+                next: self.head.as_mut(),
+            }
         }
+    }
+}
+
+impl<T> Default for List<T> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
 impl<T> Drop for List<T> {
     fn drop(&mut self) {
-        while let Some(_) = self.pop() { }
+        while self.pop().is_some() {}
+    }
+}
+
+impl<T> IntoIterator for List<T> {
+    type Item = T;
+    type IntoIter = IntoIter<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        IntoIter(self)
     }
 }
 
@@ -171,7 +185,9 @@ mod test {
     #[test]
     fn into_iter() {
         let mut list = List::new();
-        list.push(1); list.push(2); list.push(3);
+        list.push(1);
+        list.push(2);
+        list.push(3);
 
         let mut iter = list.into_iter();
         assert_eq!(iter.next(), Some(1));
@@ -183,7 +199,9 @@ mod test {
     #[test]
     fn iter() {
         let mut list = List::new();
-        list.push(1); list.push(2); list.push(3);
+        list.push(1);
+        list.push(2);
+        list.push(3);
 
         let mut iter = list.iter();
         assert_eq!(iter.next(), Some(&1));
@@ -195,7 +213,9 @@ mod test {
     #[test]
     fn iter_mut() {
         let mut list = List::new();
-        list.push(1); list.push(2); list.push(3);
+        list.push(1);
+        list.push(2);
+        list.push(3);
 
         let mut iter = list.iter_mut();
         assert_eq!(iter.next(), Some(&mut 1));

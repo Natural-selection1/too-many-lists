@@ -9,8 +9,8 @@ pub struct Iter<'a, T> {
 
 impl<'a, T> List<'a, T> {
     pub fn push<U>(
-        prev: Option<&'a List<'a, T>>, 
-        data: T, 
+        prev: Option<&'a List<'a, T>>,
+        data: T,
         callback: impl FnOnce(&List<'a, T>) -> U,
     ) -> U {
         let list = List { data, prev };
